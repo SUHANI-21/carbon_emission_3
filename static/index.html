@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>KINETIC_INTEL | Core</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script id="tailwind-config">
+          tailwind.config = { darkMode: "class", theme: { extend: { colors: { background: "#09090b", surface: "#18181b", primary: "#10b981", danger: "#ef4444", warning: "#f59e0b" }, fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'], display: ['Space Grotesk', 'sans-serif'] } } } }
+    </script>
+    <style>
+        body { background-color: #09090b; color: #f4f4f5; }
+        .glass-panel { background: rgba(24, 24, 27, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-btn { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: all 0.2s; color: #a1a1aa; width: 100%; text-align: left;}
+        .nav-btn:hover { background: rgba(255,255,255,0.05); color: #fff;}
+        .nav-btn.active { background: rgba(16, 185, 129, 0.1); color: #10b981; border-right: 3px solid #10b981; border-radius: 0.5rem 0 0 0.5rem; }
+        .loader { border: 3px solid rgba(255,255,255,0.1); border-top-color: #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 50; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { background: rgba(239, 68, 68, 0.95); backdrop-filter: blur(10px); color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.9); border-left: 4px solid #b91c1c; animation: slideIn 0.3s forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .stat-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem; }
+        .alert-row { cursor: pointer; transition: background 0.2s; }
+        .alert-detail { display: none; background: rgba(239, 68, 68, 0.05); }
+        .alert-detail.open { display: table-row; animation: expand 0.2s ease-out; }
+    </style>
+</head>
+<body class="antialiased h-screen overflow-hidden flex">
+
+    <!-- Sidebar -->
+    <aside class="w-72 flex-shrink-0 glass-panel border-y-0 border-l-0 rounded-none h-full flex flex-col p-6 z-40 bg-[#09090b]/80 shadow-2xl relative">
+        <div class="flex items-center gap-3 mb-10">
+            <span class="material-symbols-outlined text-primary text-4xl">electric_bolt</span>
+            <h1 class="font-display font-bold text-2xl tracking-wider text-white">KINETIC<br><span class="text-zinc-500">INTEL</span></h1>
+        </div>
+        <nav class="flex flex-col gap-2 flex-grow font-display font-medium text-sm">
+            <button class="nav-btn active" data-target="tab-live"><span class="material-symbols-outlined">speed</span> Cluster Dashboard</button>
+            <button class="nav-btn" data-target="tab-trends"><span class="material-symbols-outlined">query_stats</span> Anomaly Trends</button>
+            <button class="nav-btn" data-target="tab-forecast"><span class="material-symbols-outlined">show_chart</span> Carbon Forecaster</button>
+            <div class="my-4 h-px w-full bg-zinc-800"></div>
+            <button class="nav-btn" data-target="tab-logs"><span class="material-symbols-outlined">warning</span> Alert Registry</button>
+            <button class="nav-btn" data-target="tab-lab"><span class="material-symbols-outlined">science</span> Ensemble Sandbox</button>
+        </nav>
+        <div class="mt-auto pt-6 border-t border-zinc-800 text-xs font-mono text-zinc-400 bg-zinc-900/50 p-3 rounded flex items-center gap-3">
+            <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span></span>
+            SSE STREAM ACTIVE
+        </div>
+    </aside>
+
+    <main class="flex-grow overflow-y-auto w-full h-full p-8 lg:p-12">
+        <div class="max-w-[1600px] mx-auto">
+            
+            <!-- LIVE DASHBOARD -->
+            <section id="tab-live" class="tab-content active space-y-12">
+                <div>
+                    <h2 class="text-4xl font-display font-bold mb-2 text-white">Global Telemetry</h2>
+                    <p class="text-zinc-400 max-w-2xl">Streaming per-second node assessments tracking Power and Carbon.</p>
+                </div>
+                <!-- ECharts Gauges -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="glass-panel p-6 h-[400px] relative"><h3 class="font-mono text-center absolute w-full top-6 text-zinc-300 font-bold tracking-widest text-lg">S1 EMISSIONS</h3><div id="gauge-S1" class="w-full h-full mt-4"></div></div>
+                    <div class="glass-panel p-6 h-[400px] relative"><h3 class="font-mono text-center absolute w-full top-6 text-zinc-300 font-bold tracking-widest text-lg">S2 EMISSIONS</h3><div id="gauge-S2" class="w-full h-full mt-4"></div></div>
+                    <div class="glass-panel p-6 h-[400px] relative"><h3 class="font-mono text-center absolute w-full top-6 text-zinc-300 font-bold tracking-widest text-lg">S3 EMISSIONS</h3><div id="gauge-S3" class="w-full h-full mt-4"></div></div>
+                </div>
+                <!-- Power Streams -->
+                <div>
+                    <h3 class="text-2xl font-display font-bold mb-6 flex items-center gap-2 border-b border-zinc-800 pb-2"><span class="material-symbols-outlined text-zinc-500">stacked_line_chart</span> Real-Time Power Intake</h3>
+                    <div class="grid grid-cols-1 gap-8">
+                        <div class="glass-panel p-6 h-80"><h4 class="font-mono text-sm text-zinc-400 mb-2">S1 POWER (W)</h4><div class="h-[250px]"><canvas id="live-S1"></canvas></div></div>
+                        <div class="glass-panel p-6 h-80"><h4 class="font-mono text-sm text-zinc-400 mb-2">S2 POWER (W)</h4><div class="h-[250px]"><canvas id="live-S2"></canvas></div></div>
+                        <div class="glass-panel p-6 h-80"><h4 class="font-mono text-sm text-zinc-400 mb-2">S3 POWER (W)</h4><div class="h-[250px]"><canvas id="live-S3"></canvas></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TREND ANALYSIS -->
+            <section id="tab-trends" class="tab-content">
+                <div class="flex flex-col h-full space-y-10">
+                    <div class="flex justify-between items-end border-b border-zinc-800 pb-6">
+                        <div class="max-w-2xl">
+                            <h2 class="text-4xl font-display font-bold text-white mb-2">Historic Trends Analysis</h2>
+                            <p class="text-zinc-400">Deep-dive into power footprints spanning back into the internal cache records. Calculates breakdown statistics automatically.</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="btn-hist-1h" class="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded text-sm transition-colors border border-zinc-600 font-mono text-white shadow-lg">1H HISTORY</button>
+                            <button id="btn-hist-24h" class="px-5 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-sm transition-colors border border-blue-500/50 font-mono">24H HISTORY</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        <div class="glass-panel p-6 col-span-1 xl:col-span-2 h-[450px]"><div class="h-full w-full"><canvas id="analysis-S1"></canvas></div></div>
+                        <div class="glass-panel p-6 col-span-1 flex flex-col justify-center gap-4">
+                            <h4 class="text-xl font-display font-bold text-white mb-2 border-b border-zinc-800 pb-2">S1 Breakdown Panel</h4>
+                            <div class="stat-card"><span class="text-zinc-500 text-xs uppercase">Avg Power Usage</span><div class="text-2xl font-mono text-white" id="stat-s1-avg">-- W</div></div>
+                            <div class="stat-card"><span class="text-zinc-500 text-xs uppercase">Total Assessed Anomaly Load</span><div class="text-2xl font-mono text-danger" id="stat-s1-anoms">-- %</div></div>
+                        </div>
+
+                        <div class="glass-panel p-6 col-span-1 xl:col-span-2 h-[450px]"><div class="h-full w-full"><canvas id="analysis-S2"></canvas></div></div>
+                        <div class="glass-panel p-6 col-span-1 flex flex-col justify-center gap-4">
+                            <h4 class="text-xl font-display font-bold text-white mb-2 border-b border-zinc-800 pb-2">S2 Breakdown Panel</h4>
+                            <div class="stat-card"><span class="text-zinc-500 text-xs uppercase">Avg Power Usage</span><div class="text-2xl font-mono text-white" id="stat-s2-avg">-- W</div></div>
+                            <div class="stat-card"><span class="text-zinc-500 text-xs uppercase">Total Assessed Anomaly Load</span><div class="text-2xl font-mono text-danger" id="stat-s2-anoms">-- %</div></div>
+                        </div>
+
+                        <div class="glass-panel p-6 col-span-1 xl:col-span-2 h-[450px]"><div class="h-full w-full"><canvas id="analysis-S3"></canvas></div></div>
+                        <div class="glass-panel p-6 col-span-1 flex flex-col justify-center gap-4">
+                            <h4 class="text-xl font-display font-bold text-white mb-2 border-b border-zinc-800 pb-2">S3 Breakdown Panel</h4>
+                            <div class="stat-card"><span class="text-zinc-500 text-xs uppercase">Avg Power Usage</span><div class="text-2xl font-mono text-white" id="stat-s3-avg">-- W</div></div>
+                            <div class="stat-card"><span class="text-zinc-500 text-xs uppercase">Total Assessed Anomaly Load</span><div class="text-2xl font-mono text-danger" id="stat-s3-anoms">-- %</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CARBON FORECAST -->
+            <section id="tab-forecast" class="tab-content h-full">
+                <div class="flex flex-col h-full space-y-8">
+                    <div class="border-b border-zinc-800 pb-6 mb-6 flex flex-wrap lg:flex-nowrap justify-between items-end gap-6">
+                        <div class="max-w-3xl">
+                            <h2 class="text-4xl font-display font-bold mb-3 text-white flex items-center gap-3">SARIMAX Engine <span class="bg-warning/20 text-warning text-sm px-2 py-0.5 rounded font-mono border border-warning/30">v2.4.1</span></h2>
+                            <p class="text-zinc-400 leading-relaxed">Cluster predictor using the `('1', '1', '1')x('1', '1', '1', '12')` framework. Seasonal spikes reflect learned daily load cycles.</p>
+                        </div>
+                        <div class="flex gap-3 flex-shrink-0">
+                            <button id="btn-forecast-1h" class="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded font-mono border border-zinc-600 transition-colors shadow-lg">1H FOCUS</button>
+                            <button id="btn-forecast-24h" class="px-6 py-2.5 bg-warning hover:bg-yellow-500 text-zinc-900 font-bold rounded shadow-lg shadow-warning/20 transition-colors">24H EXTRAPOLATION</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12">
+                        <!-- S1 -->
+                        <div class="glass-panel p-6 col-span-1 lg:col-span-2 h-[450px]"><div class="h-full w-full"><canvas id="forecast-S1"></canvas></div></div>
+                        <div class="glass-panel p-6 col-span-1 flex flex-col justify-center gap-4 bg-gradient-to-br from-transparent to-warning/5 border-warning/20">
+                            <h4 class="text-xl font-display font-bold text-warning mb-2 border-b border-zinc-800 pb-2">Analysis: Node S1</h4>
+                            <p class="text-sm text-zinc-400 mb-2">SARIMA projects bounds wider into the future due to recursive volatility algorithms.</p>
+                            <div class="stat-card border-warning/20"><span class="text-zinc-500 text-xs uppercase">Terminal Peak Prediction</span><div class="text-2xl font-mono text-warning" id="fc-s1-peak">-- kg CO2</div></div>
+                        </div>
+
+                        <!-- S2 -->
+                        <div class="glass-panel p-6 col-span-1 lg:col-span-2 h-[450px]"><div class="h-full w-full"><canvas id="forecast-S2"></canvas></div></div>
+                        <div class="glass-panel p-6 col-span-1 flex flex-col justify-center gap-4 bg-gradient-to-br from-transparent to-warning/5 border-warning/20">
+                            <h4 class="text-xl font-display font-bold text-warning mb-2 border-b border-zinc-800 pb-2">Analysis: Node S2</h4>
+                            <p class="text-sm text-zinc-400 mb-2">Exogenous variables natively lock day/night seasonality into the trajectory arc.</p>
+                            <div class="stat-card border-warning/20"><span class="text-zinc-500 text-xs uppercase">Terminal Peak Prediction</span><div class="text-2xl font-mono text-warning" id="fc-s2-peak">-- kg CO2</div></div>
+                        </div>
+
+                        <!-- S3 -->
+                        <div class="glass-panel p-6 col-span-1 lg:col-span-2 h-[450px]"><div class="h-full w-full"><canvas id="forecast-S3"></canvas></div></div>
+                        <div class="glass-panel p-6 col-span-1 flex flex-col justify-center gap-4 bg-gradient-to-br from-transparent to-warning/5 border-warning/20">
+                            <h4 class="text-xl font-display font-bold text-warning mb-2 border-b border-zinc-800 pb-2">Analysis: Node S3</h4>
+                            <p class="text-sm text-zinc-400 mb-2">Model applies server-specific structural smoothing against baseline variance.</p>
+                            <div class="stat-card border-warning/20"><span class="text-zinc-500 text-xs uppercase">Terminal Peak Prediction</span><div class="text-2xl font-mono text-warning" id="fc-s3-peak">-- kg CO2</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ALERT LOGS -->
+            <section id="tab-logs" class="tab-content h-full">
+                <div class="glass-panel p-8 flex flex-col h-[calc(100vh-100px)]">
+                    <div class="mb-6 border-b border-zinc-800 pb-4">
+                        <h3 class="text-3xl font-display font-bold flex items-center gap-3 text-danger"><span class="material-symbols-outlined text-4xl">notification_important</span> Interactive Alert Registry</h3>
+                        <p class="text-zinc-400 mt-2">Continuous chronological registry. <strong class="text-white">Click any anomaly row</strong> below to view the expanded dispatch JSON mock receipt.</p>
+                    </div>
+                    <div class="w-full flex-grow overflow-auto rounded-lg border border-zinc-800 shadow-xl bg-[#09090b]/80">
+                        <table class="w-full text-left text-sm text-zinc-300 font-mono table-fixed">
+                            <thead class="text-xs text-zinc-400 uppercase bg-zinc-900 sticky top-0 border-b border-zinc-800 shadow z-10 w-full">
+                                <tr>
+                                    <th class="px-6 py-5 w-1/4">Timestamp</th>
+                                    <th class="px-6 py-5 w-1/4">Node Identity</th>
+                                    <th class="px-6 py-5 w-1/4">Spike Volatility</th>
+                                    <th class="px-6 py-5 w-1/4 text-right">Ensemble Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-tbody" class="divide-y divide-zinc-900">
+                                <!-- Populated dynamically as accordions -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ENSEMBLE LABORATORY -->
+            <section id="tab-lab" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <!-- Form Control -->
+                    <div class="col-span-1 lg:col-span-2 space-y-6">
+                        <div class="glass-panel p-8">
+                            <h3 class="text-2xl font-display font-bold text-white mb-2">Model Architecture</h3>
+                            <p class="text-sm text-zinc-400 mb-6">Internal statistics defining the active ensemble.</p>
+                            <ul class="space-y-4 text-sm text-zinc-300">
+                                <li class="bg-zinc-800/40 p-3 rounded border border-zinc-800"><span class="font-bold text-blue-400">Isolation Forest</span> Weight: ~13.2%</li>
+                                <li class="bg-zinc-800/40 p-3 rounded border border-zinc-800"><span class="font-bold text-blue-400">SGD One-Class SVM</span> Weight: ~13.3%</li>
+                                <li class="bg-zinc-800/40 p-3 rounded border border-zinc-800"><span class="font-bold text-blue-400">Stat Autoencoder</span> Weight: ~10.5%</li>
+                            </ul>
+                        </div>
+
+                        <div class="glass-panel p-8">
+                            <h3 class="text-xl font-display font-bold text-white mb-2 border-b border-zinc-800 pb-2">Manual Data Injection</h3>
+                            <p class="text-sm text-zinc-400 mb-4">Evaluate custom CSV formats internally.</p>
+                            <form id="upload-form" class="space-y-6">
+                                <input type="file" id="csv-file" accept=".csv" required class="block w-full text-sm text-zinc-400 bg-zinc-900 border border-zinc-800 p-2 rounded cursor-pointer file:cursor-pointer file:bg-primary file:text-black file:font-bold file:border-0 file:rounded file:px-4 file:py-1 file:mr-4">
+                                <label class="flex items-center gap-3 text-sm font-medium hover:text-white cursor-pointer select-none">
+                                    <input type="checkbox" id="append-data" class="w-4 h-4 rounded border-zinc-700 text-primary bg-zinc-800"> Append data permanently to Live Arrays?
+                                </label>
+                                <button type="submit" class="w-full relative px-4 py-3 bg-primary hover:bg-primary/90 text-zinc-950 font-bold rounded flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined">upload_file</span> Process Inference <div id="upload-loader" class="loader absolute right-4"></div>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Sandbox Output -->
+                    <div class="col-span-1 lg:col-span-3 glass-panel p-8 flex flex-col h-[750px]">
+                        <h3 class="text-2xl font-display font-bold text-white border-b border-zinc-800 pb-4 mb-4">Laboratory Output Terminal</h3>
+                        <div class="flex-grow w-full overflow-auto bg-black rounded border border-zinc-800">
+                            <table class="w-full text-left text-xs text-zinc-400 font-mono">
+                                <thead class="text-zinc-500 bg-zinc-900 sticky top-0 border-b border-zinc-800">
+                                    <tr><th class="px-4 py-3">Timestamp/Srv</th><th class="px-4 py-3">Power/Mean</th><th class="px-4 py-3">Evaluator Output</th></tr>
+                                </thead>
+                                <tbody id="sandbox-tbody" class="divide-y divide-zinc-900">
+                                    <tr><td colspan="3" class="text-center p-8 text-zinc-600">Awaiting CSV Data Ingestion...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <div id="toast-container"></div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
