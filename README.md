@@ -1,4 +1,4 @@
-# AI-Powered Server Anomaly Detection & Carbon Emission Forecasting
+# Data Center Anomaly Detection & Carbon Emission Forecasting
 
 An intelligent infrastructure monitoring system that combines **ensemble anomaly detection** with **SARIMA-based carbon emission forecasting** for server environments.
 
